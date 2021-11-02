@@ -1,0 +1,26 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0 plus SQ/ICADD Tables//EN" "html.dtd">
+
+<HTML>
+<HEAD>
+<TITLE>user2sid and sid2user</TITLE>
+</HEAD>
+<BODY><H1>user2sid and sid2user</H1> 
+<P>Two small utilities for Windows NT that allow you to query SAM and to find
+out a SID value for a given account name and <I>vice versa</I>.</P>
+<P>User2sid is a command line interface to a WIN32 function LookupAccountName.
+Usage:</P>
+<P><CODE>user2sid [\\computer_name] account_name</CODE></P>
+<P>where <CODE>computer_name</CODE> is optional. By default, the search starts
+at a local Windows NT computer.</P>
+<P>Sid2user is a command line interface to a WIN32 function LookupSidName.
+Usage:</P>
+<P><CODE>sid2user [\\computer_name] authority subauthority1 ...</CODE></P>
+<P>where <CODE>computer_name</CODE> is optional. By default, the search starts
+at a local Windows NT computer. For example,</P>
+<P><CODE>sid2user 5 32 544</CODE></P>
+<P>Download <A HREF="sid.zip">sid.zip</A> (about 50 Kb).</P>
+<HR>
+<ADDRESS>e-mail <A HREF="mailto:rudnyi@comp.chem.msu.su">rudnyi@comp.chem.msu.su</A><BR>
+homepages <A HREF="http://www.chem.msu.su/~rudnyi/welcome.html">http://www.chem.msu.su/~rudnyi/welcome.html</A></ADDRESS>
+</BODY>
+</HTML>

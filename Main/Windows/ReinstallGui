@@ -1,0 +1,2 @@
+1. import-module servermanager
+2. install-windowsfeature server-gui-mgmt-infra, server-gui-shell -restart

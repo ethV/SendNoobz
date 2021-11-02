@@ -1,0 +1,5 @@
+Foreach($gpo in Get-GPO -All)
+{
+   $gpo.DisplayName
+   $gpo.CreationTime 
+}

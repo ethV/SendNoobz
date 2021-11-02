@@ -1,0 +1,298 @@
+This is a reference for the STIG Findings:ID noted in the Win10 hardening scripts
+
+WN10-00-000010: Domain-joined systems must have a Trusted Platform Module (TPM) enabled and ready for use. 
+This is one of the pre-reqs for 'credential guard' to be enabled properly. 
+Credential Guard uses virtualization based security to protect secrets that could be used for credential theft. 
+
+WN10-CC-000315: The windows installer ALWAYS install with elevated privliages must be disabled. 
+Standard users accounts must not be granted elevated priv. Enable windows installer to elevate priv when installing 
+applicaitons can allow for malicious persons and applications to gain full control of a system. 
+
+WN10-CC-000320: Users must be notified if a web-based program attempts to install software. 
+Web-based programs may attempt to install malicious software on a system. Ensuring that users are notified if a web-based program 
+attempts to install software allows them to refuse the install 
+
+WN10-CC-000325: Automatically signing in the last interactive user after a system-init restart must be disabled
+Windows can be configured to automatically sign the user back in after a Windows Update restart. Some protections are in place to help
+ensure this is done in a secure fasion; however disabling this will prevent 
+the caching of credentials for this purpose and also ensure the user is aware of the restart. 
+
+WN10-CC-000330: The windows remote management client must not use basic auth. 
+Basic auth uses plain text passwords that could be used to compromise a system
+
+WN10-CC-000335: The windows remote managament client must not allow uncenrypted traffic. 
+Unencrypted remote access to a system can allow sensitive info to be compromised. Windows remote management connections 
+must be encrypted to prevent this. 
+
+WN10-CC-000340: OneDrive must only allow sync of accounts for DoD org instances. 
+OneDrive provides access to external services for data storage which must be restricted to authorized instances if enabled. 
+COnfiguring this will restrict sync of OneDrive accounts to DoD org instances. 
+
+WN10-CC-000345: The windows remote management service must not use basic auth. 
+Basic authentication uses plain text passwords that could be used to compromise a system. 
+
+WN10-CC-000350: The windows remote management service must not allow unencrypted traffic. 
+Unencrypted remote access to a system can allow sensitive information to be compromised. Windows remote management 
+connections must be encrypted. 
+
+WN10-CC-000355: The windows remote management service must not store RunAs credentials. 
+Storage of administration credentials could allow unauthorized users access. Disallow the storage of RunAs credentials for Windows 
+Remote Management will prevent them from being used with plug-ins. 
+
+WN10-AU-000500: The application event log size must be configured to 32768 KB or greater. 
+Log size can fill up quickly. This may prevent audit events from being recorded properly and require frequent attn by admins. 
+
+WN10-AU-000505: The security event log size limt must be configured to 1024000 KB or greater 
+Log size can fill up quickly. This may prevent audit events from being recorded properly and 
+require frequent attn by admins. 
+
+WN10-AU-000510: The system even log size must be configured to 32768 KB or greater. 
+Log size can fill up quickly. They may prevent audit events from being recorded properly and 
+require attn by admins. 
+
+WN10-CC-000005: Camera access from the lock screen must be disabled. 
+Enabling camer access from the lock screen could allow for unauthorized use. Require login to ensure 
+the deivce is only used by authorized people. 
+
+WN10-CC-000010: The display of slide shows on the lock screen must be disabled. 
+Slids shows that are displayed on the lock screen could display sensitive information to unauthorized 
+people. Turning this feature off will limit access to the information to a logged on user. 
+
+WN10-CC-000020: IPv6 source routing must be configured to highest protection. 
+Configuring the system to disable IPv6 source routing protects against spoofing. 
+
+WN10-CC-000025: The system must be configured to prevent IP source routing. 
+Confing the system to disable IP source routing protects against spoofing. 
+
+WN10-CC-000030: The system must be configured to prevent ICMP redirects from overriding Open Shortest
+Path First generated routes. 
+Allowing ICMP redirects of routes can lead to traffic not being routed properly. When disbaled this 
+forces ICMP to be routed cia shortes path first. 
+
+WN10-CC-000035: The system must be configured to ignore NetBIOS name release requests except from WINS 
+servers. 
+Config the system to ignore name release requests except form WINS servers, prevents DoS attacks. 
+
+WN10-CC-000040: Indirect logons to an SMB server must be disabled. 
+Insecure guest logons allow unauthenticated access to shared folders. Shared resources on a system must 
+require authentication to establish access. 
+
+WN10-CC-000050: Hardened UNC Paths must be defined to require mutual authentication and integrity for 
+at least the \\*SYSVOL and \\*NETLOGON shares. [reference: https://social.technet.microsoft.com/wiki/contents/articles/8548.active-directory-sysvol-and-netlogon.aspx]
+
+WN10-CC-000055: Simultaneous connectoins to the internet or a windows domain must be limited. 
+Multiple network connections can provide additional attack vectors to a system and must be limited. 
+This setting prevents systems from automatically establishing multiple connections. When both wired and 
+wireless connections are available for example the less preddered connection (typically wireless) will 
+be disconnected. 
+
+WN10-CC-000060: Connections to non-domain networks when connected to a domain authenticated network 
+must be blocked. 
+Multiple network connections can provide additional attack vectors to a system and should be limited
+When connected to a domain communications must go through the domain connection. 
+
+WN10-CC-000065: Wifi sense must be disabled 
+Wifi sense automatically connects the system to known hotspots and networks that contacts have shared. 
+it allows the sharing of systems known networks to contacts. Auto connecting to hotspots and shared 
+networks can expose a system to unsecured or potentially mal systems. 
+
+WN10-CC-000037: Local admin accounts must have their privliaged token filtered to prevent elevated privliagesfrom being 
+used over the network on domain systems. 
+a compromised local admin account can provide means for an attacker to move latterly between 
+domain systems. With the User Account Control enabled filtering the privliaged token for built-in admin
+accounts will prevent the elevated privliages of these accounts from being used over the network 
+
+WN10-CC-000085: Early launch antimalware, boot-start driver init policy must prevent boot drivers ID'ed as bad. 
+Compromised boot drivers can introduce malware prior to protection mechanisms that load after init. The early launch 
+antimalware driver can limit allowed drivers based on classifications determined by the malware protection application. 
+At a minimum drivers determined to be bad must not be allowed. 
+
+WN10-CC-000090: Group policy objects must be reprocessed even if they have not changed. 
+Enabling this steeing and then selecting the "process even if the group policy objects have not changed" option ensures
+that the policies will be reprocessed even if none have been changed. This way any unauthorized changes are forced to match the 
+domain-based group policy settings again. 
+
+WN10-CC-000100: Downloading print driver packages over HTTP must be prevented. 
+Some features may communicate with the vendor sending system info or downloading data or components for the feature. 
+Turning off this capibility will prevent potentially sensitive information from being sent outside the enterprise and uncontrolled 
+updates to the system. 
+This setting prevernts the computer from downloading print driver packages over HTTP
+
+WN10-CC-000015: Automatic logins must be disabled 
+Allowing systems to auto login when the machine is booted could give access to any unauthorized user who restarts the computer 
+auto login with admin privliages would give full access to an unauthorized user. 
+
+WN10-CC-000105: Web publishing and online ordereing wizards must be prevented from downloading a list of providers. 
+Some features may communicate with the vendown sending system info or downloading data or components for the feature. Turing off the 
+capalbility will prevent potentially sensitive information from being sent outside the org. 
+
+WN10-CC-000110: Printing over HTTP must be prevented. 
+Some features may communicate with the vendor sending system information or downloading data or components of a feature. 
+This setting prevents the client computer from printing over HTTP which allows the computer to print to printers or to printers over the 
+internet. 
+
+WN10-CC-000115: Systems must at least attempt device authentication using certs 
+Using certs to authenticate devices to the domain provides increased security over passwords. By default systems will attempt to authenticate 
+using certs and fall back to passwords if the domain controller does not support certs for devices. 
+This may also be configured to always use the certificates for device auth. 
+
+WN10-CC-000120: Network selection UI must not be displayed on the logon screen 
+
+WN10-CC-000130: Local users on domain joined computers must not be enumerated. 
+The username is one part of login creds. Preventing the enum of users limits leaking this info. 
+
+WN10-SO-000030: Audit policy using subcategories must be enabled. 
+Maintaining an audit trail of system activity logs can be helpful in Id'ing config errors, and troubleshooting services, and
+detecting attacks. 
+Audit logs are required for analyzing the security information of assets and detecting sings of sus / unexpected behavior. 
+
+WN10-SO-000035: Outgoing secure channel traffic must be encrypted or signed. 
+Requests sent on the secure channel are authenticated and sensitive info is encrypted (passwords for example), but NOT ALL info 
+is encrypted. If enabled outgoing secure channel traffic will be encrypted and signed. 
+
+WN10-SO-000040: Outgoing secure channel traffic must be encrypted when possible. 
+Requests sent on the secure channel are authenticated and sensitive info (again passwords for example) is encrypted. NOT ALL info is 
+encrypted. If enabled outgoing secure channel traffic will be encrypted. 
+
+WN10-SO-000045: Outgoing secure channel traffic must be signed when possible. 
+(as above)...If enabled outgoing secure channel traffic will be signed. 
+
+WN10-CC-000145: Users must be prompted for a password on resumre from sleet (on battery)
+
+WN10-CC-000150: Users must be prompted for a password on resumre from sleet (plugged in)
+
+WN10-CC-000155: Solicited Remote Assistance must not be allowed. 
+Remote assistance allows users to view/take control of the local session of a user. This is help that is requested by the local user. 
+This may allow unauthorized users access to the resources on the computer. 
+
+WN10-SO-000050: The computer password must not be prevented from being reset. 
+
+WN10-CC-000165: Unauthenticated RPC clients must be restricted from connecting to the RPC server. 
+Config RPC to restrict RPC clients from connecting to the RPC server will prevent anon connections. 
+
+WN10-CC-000170: Allows microsoft accounts to be optional for modern style apps must be enabled. 
+Contro of credentials and the system must be maintained within the enterprise. Enabling this setting allows 
+enterprise creds to be used with modern style apps that support this instead of microsoft accounts. 
+
+WN10-SO-000055: The max age for machine account passwords must be configured to 30 days or less. 
+
+WN10-CC-000175: The application compatibility program inventory must be prevented from collecting data and sending the info to 
+microsoft. 
+
+WN10-SO-000060: The system must be configured to require a stron session key. 
+This requires strong session keys enforced 128-bit encryption between systems. 
+
+WN10-CC-000180: Autoplay must be turned off for non-volume devices. 
+Allowing autoplay to exe may introduce malicious code to a system. This setting will disable autoplay for non-volume devices. 
+
+WN10-SO-000070: The machine inactivity limit must be set to 15min locking the system with the screensaver. 
+
+WN10-CC-000185: The default autorun behavior must be configured to prevent autorun commands. 
+Allowing autorun commands to exe may introduce malicious code to a system. Configuring this setting prevents autorun commands from 
+exe'ing. 
+
+WN10-CC-000190: Autoplay must be disabled for all drives. 
+
+WN10-SO-000195: The system must be configured to prevent the storage of the LAN Manager hash of passwords
+The LAN Manager hash uses a weak encryption algo and there are several tools available that use this hash to retrieve account passwords 
+This setting controls whether or not a LAN Manager has of the password is stored in the SAM the next time the password is changed. 
+
+WN10-SO-000205: The LanMan authentication level must ne set to send NTLMv2 responses only and refuse LM and NTLM. 
+
+WN10-SO-000210: The system must be configured to the required LDAP client signing level
+This setting must be set to Negotiate signing or Require signing, depending on the env and type of LDAP server in use. 
+
+WN10-SO-000215: The system must be configured to meet the minimum session security requirement for NTLM SSP based clients. 
+Microsoft has implimented a variety of security support providers for use with RPC sessions. All of the options must be enabled to
+ensure the maximum security level. 
+
+WN10-SO-000220: The system must be configured to meet the minimum session security requirement for NTLM SSP based servers. 
+Microsoft has implimented a variety of security support providers for use with RPC sessions. All of the options must be 
+enabled to ensure the max security level. 
+
+WN10-SO-000230: The system must be configured to use FIPS-compliant algorithms for encryption, hashing, and signing. 
+This setting ensures that the system uses algorithms that are FIPS compliant. 
+
+WN10-SO-000240: The default permissions of global system objects must be increased. 
+If this policy is enabled, the default DACL is stronger allowing non-admin users to read shared objects 
+but not modify shared objects that they did not create.
+
+WN10-SO-000245: User account control approval mode for the built-in admin must be enabled. 
+User Account control is a security mech for limiting the EoP including admin accounts unless authorized.
+This setting configures the built-in Admin account so that it runs in admin approval mode. 
+
+WN10-SO-000250: User Account Control must at a min prompt admin for consent on the secure desktop
+This setting configures the EoP for logged on admins to complete a task that requires raised privs. 
+
+WN10-SO-000255: User Account Control must automatically deny elevation requests for standard users. 
+This ensures correct accounts are used on the system for privliaged tasks to help mitigate credential theft. 
+
+WN10-SO-000260: User Account Control must be configured to detect application installations and prompt for elevation. 
+This setting requires windows to respond to application install requests by prompting for credentials. 
+
+WN10-SO-000265: User Account Control must only elevate UIAccess applications that are installed in secure locations. 
+This setting configures windows to only allow applications installed in a secure location on the file system such as Program Files or 
+Windows\System32 to run with elvevated privs 
+
+WN10-SO-000270: User Account Control must run all administrators in Admin Approval Mode, enabling UAC. 
+
+WN10-SO-000275: User Account Control must virtualize file and registry write failures to per-user locations. 
+This setting configures non-UAC compliant applications to run in virtualized file and registry entries in per-user locations 
+allowing them to run. 
+
+WN10-UC-000015: Toast notifications to the lock screen must be turned off. 
+Toast notifications that are displayed on the lock screen could display sensitive information to unauthorized users. 
+
+WN10-US-000020: could not locate 
+
+WN10-CC-000206: Windows update must not obtail updates from other PCs on the internet. 
+
+WN10-CC-000066: Command line data must be included in process creation events. 
+Logs command line data associated with process creation
+
+WN10-CC-000326: PowerShell script block logging must be enabled. 
+Records detailed information from the processing of PowerShell commands and scripts. 
+
+WN10-00-000150: Structured Exception Handling Overwrite Protection (SEHOP) must be enabled. 
+This blocks exploits that use the SEHOP overwrite technique. This is a common buffer overflow attack. 
+
+WN10-CC-000038: WDigest Authentication must be disbaled. 
+This is disabled by default in Win10
+
+WN10-CC-000044: Internet Connection sharing must be disabled. 
+Internet connection sharing makes it possible for an existing internet connection (ex: wireless) to be shared and used by 
+other sytems to create a mobile hotspot. This exposes the system sharing the connection to others with potential mal purpose. 
+
+WN10-SO-000167: Remote calls to the Security Account Manager (SAM) must be restricted to admins. 
+
+WN10-CC-000197: Microsoft consumer experiences must be turned off. 
+Turning this off will prevent the install of unwanted suggested applications. 
+
+WN10-CC-000039: Run as different user must be removed from the context menus. 
+Removing this option from the context menu helps prevent it from occuring. 
+
+NOTE this is listed 4 times in the stigs script. 
+
+WN10-CC-000052: Windows 10 must be configured to prioritize ECC Curves with longer key length first. 
+Requireing EEC curves with longer key lengths to be prioritized first helps ensure more secure algorithms are used. 
+
+WN10-CC-000228: Windows 10 must be configured to prevent microsoft edge browser data from being cleared on exit. 
+This data could be used to ID malicious websites and files that could be later be used for anti-virus and IDS signatures. 
+Disabling this function will prevent the data from automatically being deleted when the browser is closed. 
+
+WN10-CC-000252: Windows 10 must be configured to disable Windows Game Recording and Broadcasting. 
+This could potentially record screen shots of other applications and expose sensitive data. Disabling will prevent this from occuring. 
+
+WN10-CC-000068: Windows 10 must be configured to ebable Remote host allows delegation of non-exportable credentials. 
+Enabling this configures the host to support Restricted Admin mode or Remote Credential Guard. 
+
+WN10-00-000165: The Server Message Block (SMB) v1 protocol must be disabled on the SMB server
+SMBv1 is a legacy protocol that uses the MD5 algorithm as part of SMB. MD5 is known to be vulnerable to a number of attacks 
+such as collision and preimage attacks as well as not being FIPS compliant.
+
+WN10-00-000170: The Server Message Block (SMB) v1 protocol must be disabled on the SMB client.
+"" as above. 
+
+WN10-EP-000010: User must be prevented from making changes to Exploit Protection settings in the Windows Defender Security Center on 
+Win 10
+If users are allowed to make changes to the configured mitigations, the additional protections may be circumvented.
