@@ -1,0 +1,38 @@
+BearTrap v0.2-beta
+
+BearTrap is meant to be a portable network defense utility written entirely in
+Ruby.  It opens "trigger" ports on the host that an attacker would connect to.
+When the attacker connects and/or performs some interactions with the trigger
+an alert is raised and the attacker's ip address is potentially blacklisted.
+
+The idea came from listening to the PaulDotCom Security Podcast
+(http://pauldotcom.com/security-weekly/) particularly episodes 203 and 204 as
+the concept of honeyports is described.
+
+Dependencies:
+
+Ruby 1.9.x interpreter
+	Installation varies from system to system.
+getopt ruby gem
+	Install with 'gem install getopt'
+
+Installation:
+
+No installation required.  Simply edit the configuration file, config.yml.  It
+should be fairly well documented and/or self-explanatory.  If its not, check
+out the support section below.
+
+Usage:
+
+ruby bear_trap.rb -c config.yml
+
+Running as root is recommended, as most blacklisting tools (pfctl, iptables,
+etc) must be ran as root.
+
+Support:
+
+If you have any significant problems, send me an email at
+chrisbdaemon [at] gmail.com with BearTrap somewhere in the subject.
+
+If you would like to contribute, go ahead and fork the github repo, make your
+changes and send a pull request (see http://help.github.com/fork-a-repo/).
