@@ -13,8 +13,8 @@ We've coordinated this repo and continued our communication through the [Slack] 
 The Team
 ===========
 
-1. __T3cht0n1c__ - Team Captain.
-2. __NeedAMulligan__ - Co-Captain 
+1. __NeedAMulligan__ - Team Captain.
+2. __eth5__ - Co-Captain 
 
 
 
