@@ -1,0 +1,47 @@
+MariaDB [(none)]> show databases
+    -> ;
++--------------------+
+| Database           |
++--------------------+
+| Staff              |
+| information_schema |
+| users              |
++--------------------+
+3 rows in set (0.021 sec)
+
+MariaDB [(none)]> use Staff;
+Reading table information for completion of table and column names
+You can turn off this feature to get a quicker startup with -A
+
+Database changed
+MariaDB [Staff]> show tables;
++-----------------+
+| Tables_in_Staff |
++-----------------+
+| StaffDetails    |
+| Users           |
++-----------------+
+2 rows in set (0.000 sec)
+
+MariaDB [Staff]> select * from StaffDetails;
++----+-----------+------------+-------------------------------+----------------+-----------------------+---------------------+
+| id | firstname | lastname   | position                      | phone          | email                 | reg_date            |
++----+-----------+------------+-------------------------------+----------------+-----------------------+---------------------+
+|  1 | Mary      | Moe        | CEO                           | 46478415155456 | marym@example.com     | 2019-05-01 17:32:00 |
+|  2 | Julie     | Dooley     | Human Resources               | 46457131654    | julied@example.com    | 2019-05-01 17:32:00 |
+|  3 | Fred      | Flintstone | Systems Administrator         | 46415323       | fredf@example.com     | 2019-05-01 17:32:00 |
+|  4 | Barney    | Rubble     | Help Desk                     | 324643564      | barneyr@example.com   | 2019-05-01 17:32:00 |
+|  5 | Tom       | Cat        | Driver                        | 802438797      | tomc@example.com      | 2019-05-01 17:32:00 |
+|  6 | Jerry     | Mouse      | Stores                        | 24342654756    | jerrym@example.com    | 2019-05-01 17:32:00 |
+|  7 | Wilma     | Flintstone | Accounts                      | 243457487      | wilmaf@example.com    | 2019-05-01 17:32:00 |
+|  8 | Betty     | Rubble     | Junior Accounts               | 90239724378    | bettyr@example.com    | 2019-05-01 17:32:00 |
+|  9 | Chandler  | Bing       | President - Sales             | 189024789      | chandlerb@example.com | 2019-05-01 17:32:00 |
+| 10 | Joey      | Tribbiani  | Janitor                       | 232131654      | joeyt@example.com     | 2019-05-01 17:32:00 |
+| 11 | Rachel    | Green      | Personal Assistant            | 823897243978   | rachelg@example.com   | 2019-05-01 17:32:00 |
+| 12 | Ross      | Geller     | Instructor                    | 6549638203     | rossg@example.com     | 2019-05-01 17:32:00 |
+| 13 | Monica    | Geller     | Marketing                     | 8092432798     | monicag@example.com   | 2019-05-01 17:32:00 |
+| 14 | Phoebe    | Buffay     | Assistant Janitor             | 43289079824    | phoebeb@example.com   | 2019-05-01 17:32:02 |
+| 15 | Scooter   | McScoots   | Resident Cat                  | 454786464      | scoots@example.com    | 2019-05-01 20:16:33 |
+| 16 | Donald    | Trump      | Replacement Janitor           | 65464646479741 | janitor@example.com   | 2019-12-23 03:11:39 |
+| 17 | Scott     | Morrison   | Assistant Replacement Janitor | 47836546413    | janitor2@example.com  | 2019-12-24 03:41:04 |
++----+-----------+------------+-------------------------------+----------------+-----------------------+---------------------+

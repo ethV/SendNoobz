@@ -1,0 +1,11 @@
+StaffDetails:id,
+StaffDetails:firstname,
+StaffDetails:lastname,
+StaffDetails:position,
+StaffDetails:phone,
+StaffDetails:email,
+StaffDetails:reg_date,
+
+Users:UserID,
+Users:Username,
+Users:Passwords

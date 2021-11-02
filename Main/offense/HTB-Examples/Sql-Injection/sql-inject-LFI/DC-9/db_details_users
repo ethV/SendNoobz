@@ -1,0 +1,6 @@
+UserDetails:id,
+UserDetails:firstname,
+UserDetails:lastname,
+UserDetails:username,
+UserDetails:password,
+UserDetails:reg_date

