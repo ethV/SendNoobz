@@ -1,13 +1,10 @@
-# Blue_Streak
-Blue Streak Team Repo for BSLV'21 PvJ Competition
+# SendNoobz
+pls Send Noobz
 
-
-Pros vs. Joes: Blue Streak
+Pros vs. Joes: SendNoobz
 ===============================
 
-This repository houses all code, material and files used by the the Blue Streak team for the fully remote [Pros vs. Joes] competition held from Friday, July 29th, 2021 to Saturday, July 30th, 20201 affiliated to the BSidesLV conference. 
-
-We've coordinated this repo and continued our communication through the [Slack] channel: [https://blue-streak-workspace.slack.com](https://blue-streak-workspace.slack.com).
+This repository houses all code, material and files used by the the SendNoobz team for the fully remote [Pros vs. Joes] competition held from Friday, November 12th 2021 to Saturday, November 13th, 20201 affiliated to the BSidesDE conference. 
 
 
 The Team
