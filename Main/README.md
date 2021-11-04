@@ -1,5 +1,5 @@
 # SendNoobz
-pls Send Noobz
+pls send noobz
 
 Pros vs. Joes: SendNoobz
 ===============================
