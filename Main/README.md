@@ -9,9 +9,8 @@ This repository houses all code, material and files used by the the SendNoobz te
 
 The Team
 ===========
-
-1. __NeedAMulligan__ - Team Captain.
-2. __eth5__ - Co-Captain 
+1.  __eth5__ - Team Captain.
+2. __NeedAMulligan__ - Co-Captain
 
 
 
